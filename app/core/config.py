@@ -18,12 +18,19 @@ class Settings:
     redis_url: str
     log_level: str
     cache_default_ttl_seconds: int
+    secret_key: str
+    access_token_expire_minutes: int
+    jwt_algorithm: str
 
     def validate(self) -> None:
         if not self.database_url:
             raise ValueError("DATABASE_URL is required. Set it in the .env file.")
         if self.cache_default_ttl_seconds <= 0:
             raise ValueError("CACHE_DEFAULT_TTL_SECONDS must be greater than 0.")
+        if not self.secret_key:
+            raise ValueError("SECRET_KEY is required. Set it in the .env file.")
+        if self.access_token_expire_minutes <= 0:
+            raise ValueError("ACCESS_TOKEN_EXPIRE_MINUTES must be greater than 0.")
 
 
 def _normalize_database_url(database_url: str) -> str:
@@ -40,6 +47,9 @@ def get_settings() -> Settings:
         redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
         log_level=os.getenv("LOG_LEVEL", "INFO"),
         cache_default_ttl_seconds=int(os.getenv("CACHE_DEFAULT_TTL_SECONDS", "60")),
+        secret_key=os.getenv("SECRET_KEY", ""),
+        access_token_expire_minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")),
+        jwt_algorithm=os.getenv("JWT_ALGORITHM", "HS256"),
     )
     resolved_settings.validate()
     return resolved_settings
