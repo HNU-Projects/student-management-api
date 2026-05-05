@@ -227,3 +227,5 @@ front/.env*.local
 front/.vercel/
 front/.turbo/
 node_modules/
+.defang/
+*.exe
