@@ -21,6 +21,8 @@ class Settings:
     secret_key: str
     access_token_expire_minutes: int
     jwt_algorithm: str
+    back_end_allowed_origins: list[str]
+
 
     def validate(self) -> None:
         if not self.database_url:
@@ -50,8 +52,10 @@ def get_settings() -> Settings:
         secret_key=os.getenv("SECRET_KEY", ""),
         access_token_expire_minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")),
         jwt_algorithm=os.getenv("JWT_ALGORITHM", "HS256"),
+        back_end_allowed_origins=os.getenv("BACK_END_ALLOWED_ORIGINS", "http://localhost:3000").split(","),
     )
     resolved_settings.validate()
+
     return resolved_settings
 
 
