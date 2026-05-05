@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: student_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: student_management
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: student_redis
+    ports:
+      - "6379:6379"
+
+  api:
+    build: .
+    container_name: student_api
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:password@db:5432/student_management
+      REDIS_URL: redis://redis:6379/0
+      APP_NAME: "Student Management API (Docker)"
+      SECRET_KEY: "docker_secret_key_change_me"
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      JWT_ALGORITHM: HS256
+    ports:
+      - "8000:8000"
+    restart: always
+
+volumes:
+  postgres_data:
