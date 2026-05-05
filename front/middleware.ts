@@ -8,7 +8,7 @@ const intlMiddleware = createMiddleware(routing);
 const locales = routing.locales; // ['en', 'ar']
 const defaultLocale = routing.defaultLocale; // 'ar'
 
-// Helper function to check if a segment is a valid locale
+// Helper function to check if a segment is a valid locales
 function isLocale(segment: string): segment is 'en' | 'ar' {
   return locales.includes(segment as 'en' | 'ar');
 }
