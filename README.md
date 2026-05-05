@@ -182,7 +182,31 @@ requirements.txt
 .env.example
 ```
 
-## Environment Variables
+### 2. Local Setup
+1. **Create Virtual Environment:**
+   ```powershell
+   python -m venv .venv
+   ```
+2. **Activate Virtual Environment:**
+   - **Windows:**
+     ```powershell
+     .\.venv\Scripts\Activate.ps1
+     ```
+   - **Linux/macOS:**
+     ```bash
+     source .venv/bin/activate
+     ```
+3. **Install Dependencies:**
+   ```powershell
+   pip install -r requirements.txt
+   ```
+4. **Setup Env:** Copy `.env.example` to `.env` and adjust values.
+5. **Run Migrations:** `alembic upgrade head`
+6. **Seed Data:** `python scripts/seed_db.py`
+7. **Start Server:**
+   ```powershell
+   uvicorn app.main:app --reload
+   ```
 
 Copy `.env.example` to `.env` and adjust the values according to your local setup.
 

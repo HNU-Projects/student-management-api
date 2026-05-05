@@ -11,6 +11,7 @@ class Role(str, Enum):
 class UserRegister(BaseModel):
     email: EmailStr
     password: str = Field(min_length=1)
+    full_name: str
     role: Role
 
 
@@ -34,4 +35,14 @@ class UserResponse(BaseModel):
 
     id: int
     email: str
+    full_name: str | None
     role: str
+
+
+class EmailUpdate(BaseModel):
+    new_email: EmailStr
+
+
+class PasswordUpdate(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=1)

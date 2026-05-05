@@ -1,0 +1,55 @@
+# Student Management System - Frontend Development Guide
+
+## 1. Project Overview
+This is a Student Management System API built with FastAPI. It handles student records, authentication, and system monitoring.
+
+## 2. Backend Technical Details
+- **Base URL:** http://localhost:8000
+- **Auth Type:** JWT Bearer Token
+- **Key Entities:**
+  - **User:** (Email, Password, Role [admin/student])
+  - **Student:** (University ID, Name, GPA, Department, Status, etc.)
+
+## 3. Main Endpoints for Frontend
+### Authentication
+- `POST /auth/register`: Create a new user.
+- `POST /auth/login`: Returns `access_token` and `token_type`.
+- `GET /users/me`: Get current logged-in user info.
+
+### Students (Admin Only for Write, Student for Read own)
+- `GET /students/`: List students (Support pagination & filters: `department`, `min_gpa`, `max_gpa`).
+- `POST /students/`: Create a student record.
+- `GET /students/{id}`: Get specific student details.
+- `PUT /students/{id}`: Update student info.
+- `DELETE /students/{id}`: Remove a student.
+- `GET /students/stats/summary`: Statistical summary for dashboard cards.
+
+### Monitoring
+- `GET /monitoring/metrics`: System health and traffic stats.
+- `GET /monitoring/dashboard`: HTML dashboard (already built in backend).
+
+---
+
+## 4. PROMPT FOR AI ASSISTANT (Copy & Paste this)
+
+"I am building a Frontend for a 'Student Management System' using Next.js (App Router), Tailwind CSS, and TypeScript. 
+
+The Backend is already finished using FastAPI and is running at http://localhost:8000. Here are the backend details:
+
+1. **Authentication:** Uses JWT tokens. I need a Login page, a Register page, and an AuthProvider to manage the token in local storage and protect private routes.
+2. **Roles:** There are two roles: 'admin' and 'student'. 
+   - Admins can see the full dashboard, list of all students, and perform CRUD.
+   - Students can only see their own profile.
+3. **Dashboard Requirements:**
+   - **Admin Dashboard:** Needs statistical cards (Total Students, Avg GPA) using the `/students/stats/summary` endpoint.
+   - **Student Table:** A data table with filtering by Department and GPA, and pagination.
+   - **Forms:** Modals or pages for Adding/Editing students with validation matching the backend (GPA between 0-4, unique University ID).
+4. **API Integration:** Use 'axios' or 'fetch' with interceptors to handle the 'Authorization: Bearer <token>' header automatically.
+
+Please help me design a modern, clean, and responsive UI (Premium look) for this system. Start by outlining the project structure and the main components I should create."
+
+---
+
+## 5. Recommended Next.js Setup Command
+Run this in your new folder:
+npx create-next-app@latest . --typescript --tailwind --eslint --app
