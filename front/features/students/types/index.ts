@@ -41,6 +41,7 @@ export interface StudentResponse {
 }
 
 export interface StudentListParams {
+  [key: string]: any;
   search?: string;
   department?: string;
   status?: string;

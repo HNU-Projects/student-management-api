@@ -40,9 +40,9 @@ export function UserProfileDropdown({ align = 'end' }: UserProfileDropdownProps)
       <DropdownMenuTrigger asChild>
         <button className="flex items-center outline-none">
           <Avatar className="h-10 w-10 border-2 border-primary/10 hover:border-primary/30 transition-all">
-            <AvatarImage src={''} alt={user.full_name} />
+            <AvatarImage src={''} alt={user.full_name || ''} />
             <AvatarFallback className="bg-primary/5 text-primary font-bold">
-              {user.full_name.charAt(0)}
+              {user.full_name?.charAt(0) || 'U'}
             </AvatarFallback>
           </Avatar>
         </button>
@@ -50,7 +50,7 @@ export function UserProfileDropdown({ align = 'end' }: UserProfileDropdownProps)
       <DropdownMenuContent className="w-64 mt-2 rounded-2xl p-2" align={align} sideOffset={8}>
         <DropdownMenuLabel className="font-normal p-3">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-bold leading-none">{user.full_name}</p>
+            <p className="text-sm font-bold leading-none">{user.full_name || 'User'}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
