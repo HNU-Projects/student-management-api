@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Next.js
+front/.next
+front/out
+front/build
+front/dist
+front/node_modules/
+front/.env*.local
+front/.vercel/
+front/.turbo/
+node_modules/
