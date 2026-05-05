@@ -17,6 +17,7 @@ class User(Base):
         String(255), unique=True, nullable=False, index=True
     )
     password: Mapped[str] = mapped_column(String(255), nullable=False)
+    full_name: Mapped[str] = mapped_column(String(150), nullable=True)
     role: Mapped[str] = mapped_column(String(50), nullable=False)
 
     students: Mapped[list["Student"]] = relationship(back_populates="user")
