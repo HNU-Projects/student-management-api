@@ -1,27 +1,20 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
+import { NextRequest } from 'next/server';
 
-const locales = ['en', 'ar'];
-const defaultLocale = 'en';
+const handleI18n = createMiddleware(routing);
 
-export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // Check if pathname already has a locale
-  const pathnameHasLocale = locales.some(
-    (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
-  );
-
-  if (pathnameHasLocale) {
-    return NextResponse.next();
-  }
-
-  // Redirect to default locale
-  const url = request.nextUrl.clone();
-  url.pathname = `/${defaultLocale}${pathname}`;
-  return NextResponse.redirect(url);
+export default function proxy(request: NextRequest) {
+  return handleI18n(request);
 }
 
 export const config = {
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
+  matcher: [
+    // Match all pathnames except for
+    // - API routes
+    // - _next (static files)
+    // - _vercel (Vercel internals)
+    // - Static files (e.g. /favicon.ico, /favicon.png, etc.)
+    '/((?!api|_next|_vercel|.*\\..*).*)'
+  ]
 };
