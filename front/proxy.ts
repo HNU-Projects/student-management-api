@@ -13,7 +13,7 @@ function isLocale(segment: string): segment is 'en' | 'ar' {
   return locales.includes(segment as 'en' | 'ar');
 }
 
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const pathSegments = pathname.split('/').filter(Boolean);
 
