@@ -30,6 +30,8 @@ services:
       SECRET_KEY: "docker_secret_key_change_me"
       ACCESS_TOKEN_EXPIRE_MINUTES: 60
       JWT_ALGORITHM: HS256
+    volumes:
+      - ./backend:/app
     ports:
       - "8000:8000"
     restart: always

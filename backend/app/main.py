@@ -10,7 +10,7 @@ from fastapi.encoders import jsonable_encoder
 from app.core.config import settings
 from app.middlewares.logging_middleware import LoggingMiddleware
 from app.monitoring.dashboard import router as monitoring_router
-from app.routes import auth, users
+from app.routes import auth, users, students
 
 app = FastAPI(title=settings.app_name)
 
@@ -50,6 +50,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
+app.include_router(students.router, prefix="/students", tags=["Students"])
 app.include_router(monitoring_router)
 
 
