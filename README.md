@@ -1,316 +1,259 @@
 # Student Management System API
 
-Base backend foundation for a Student Management System using FastAPI, PostgreSQL, SQLAlchemy 2.x, Alembic, and python-dotenv.
+A full-stack Student Management System featuring a **FastAPI** backend with **PostgreSQL**, **Redis**, **JWT authentication**, and a **Next.js** frontend with i18n support.
 
-This repository currently contains the completed scopes for:
+---
 
-- Mohamed (Backend Core)
-- Salah (Caching + Logging + Monitoring)
+## Table of Contents
 
-## Project Details Alignment
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [How To Run The Project](#how-to-run-the-project)
+  - [Option 1: Running with Docker (Recommended)](#option-1-running-with-docker-recommended)
+  - [Option 2: Manual Setup (Development)](#option-2-manual-setup-development)
+- [Accessing the Application](#accessing-the-application)
+- [Running Tests](#running-tests)
+- [Alembic Migrations](#alembic-migrations)
+- [Environment Variables Reference](#environment-variables-reference)
+- [Team Contributions](#team-contributions)
+- [License](#license)
 
-### Project Goal (from Project Details)
-
-Build a backend system to manage university students with secure access control and advanced querying.
-
-### Entities (required)
-
-- Users
-- Students
-
-### Target Features (project-level roadmap)
-
-- User registration and authentication
-- Full CRUD operations for students
-- Advanced filtering (department, GPA)
-- Pagination support
-- Students can only access their own profile
-- Audit logging for updates
-
-### Roles (required)
-
-- Admin: full control over student records
-- Student: view and partially update own profile
-
-The features and role-based behavior above are project requirements and will be implemented in upcoming phases.
-
-## Phase 1 Owner Scope
-
-Owner: Mohamed (Backend Core Lead)
-
-This phase intentionally implements only the first-person scope:
-
-- Setup FastAPI project
-- Design project structure
-- Setup PostgreSQL connection
-- Create models and database schema
-- Setup migrations
-
-Expected output for this phase:
-
-- Clean backend structure
-- Database running and connected
-- Models ready for use
-
-## Backend Core (Lead) Scope
-
-Files covered in this phase:
-
-- `app/main.py`
-- `app/core/config.py`
-- `app/db/session.py`
-- `app/db/base.py`
-- `app/db/init_db.py`
-- `app/models/user.py`
-- `app/models/student.py`
-- `scripts/seed_data.py`
-
-Tasks completed in this phase:
-
-- Setup FastAPI project
-- Design project structure
-- Setup PostgreSQL connection
-- Create models and database schema
-- Setup migrations
-
-Expected phase output status:
-
-- Clean backend structure: done
-- Database running and connected: done
-- Models ready for use: done
-
-## Salah Owner Scope
-
-Owner: Salah (Caching + Logging + Monitoring)
-
-Files covered in this phase:
-
-- `app/cache/redis_client.py`
-- `app/cache/cache_manager.py`
-- `app/utils/logger.py`
-- `app/middlewares/logging_middleware.py`
-- `app/monitoring/metrics.py`
-- `app/monitoring/dashboard.py`
-
-Tasks completed in this phase:
-
-- Redis integration
-- Cache module with invalidation helpers
-- Structured logging setup
-- Request/response and error tracking middleware
-- Monitoring dashboard and metrics endpoints
-
-Expected phase output status:
-
-- Faster API performance (cache-ready): done
-- Logs stored and readable: done
-- Monitoring dashboard working: done
-
-## Out Of Scope For Current Completed Scopes
-
-The following general requirements are not part of this phase and are planned for later team phases:
-
-- Full REST CRUD endpoints
-- JWT authentication and token validation
-- Role-based authorization rules
-- Full API test suite
-- Docker integration
-
-## Current Scope
-
-- FastAPI app initialization
-- Root endpoint (`GET /`)
-- PostgreSQL database connection using `DATABASE_URL` from `.env`
-- SQLAlchemy 2.x session and declarative base
-- `User` and `Student` models
-- Alembic migration setup with initial migration
-- Redis integration for caching
-- Cache manager with key/prefix invalidation support
-- Structured JSON logging
-- Request/response and error tracking middleware
-- Monitoring metrics endpoint and dashboard
+---
 
 ## Tech Stack
 
-- Python (latest)
-- FastAPI
-- PostgreSQL
-- SQLAlchemy 2.x
-- Alembic
-- python-dotenv
+| Layer        | Technology                                          |
+| ------------ | --------------------------------------------------- |
+| **Backend**  | Python 3.12, FastAPI, SQLAlchemy 2.x, Alembic       |
+| **Database** | PostgreSQL 16                                       |
+| **Cache**    | Redis 7                                             |
+| **Auth**     | JWT (python-jose), bcrypt                           |
+| **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS 4    |
+| **i18n**     | next-intl (English & Arabic)                        |
+| **DevOps**   | Docker, Docker Compose                              |
+
+---
 
 ## Project Structure
 
 ```text
-app/
-  main.py
-  core/
-    config.py
-  db/
-    base.py
-    session.py
-    init_db.py
-  models/
-    user.py
-    student.py
-
-  cache/
-    redis_client.py
-    cache_manager.py
-
-  middlewares/
-    logging_middleware.py
-
-  monitoring/
-    metrics.py
-    dashboard.py
-
-  utils/
-    logger.py
-
-scripts/
-  seed_data.py
-
-alembic/
-  env.py
-  script.py.mako
-  versions/
-    20260427_0001_create_user_and_student_tables.py
-
-alembic.ini
-requirements.txt
-.env.example
+student-management-api/
+├── backend/                      # FastAPI backend
+│   ├── app/                      # Application code
+│   │   ├── main.py               # Application entry point
+│   │   ├── core/config.py        # Settings & environment config
+│   │   ├── db/                   # Database session, base, init
+│   │   ├── models/               # SQLAlchemy models (User, Student)
+│   │   ├── schemas/              # Pydantic request/response schemas
+│   │   ├── routes/               # API endpoints (auth, users, students)
+│   │   ├── cache/                # Redis client & cache manager
+│   │   ├── middlewares/          # Logging middleware
+│   │   ├── monitoring/               # Metrics & dashboard
+│   │   └── utils/                    # Logger utilities
+│   ├── alembic/                  # Database migrations
+│   ├── scripts/                  # Seed data & test scripts
+│   ├── tests/                        # Pytest test suite
+│   ├── Dockerfile                # Backend Docker image
+│   ├── requirements.txt              # Python dependencies
+│   ├── .env.example                  # Environment variable template
+│   └── alembic.ini               # Alembic configuration
+├── frontend/                     # Next.js frontend application
+├── docs/                         # Project documentation & API spec
+├── docker-compose.yml            # Full-stack Docker orchestration
+└── README.md
 ```
 
-### 2. Local Setup
-1. **Create Virtual Environment:**
-   ```powershell
-   python -m venv .venv
-   ```
-2. **Activate Virtual Environment:**
-   - **Windows:**
-     ```powershell
-     .\.venv\Scripts\Activate.ps1
-     ```
-   - **Linux/macOS:**
-     ```bash
-     source .venv/bin/activate
-     ```
-3. **Install Dependencies:**
-   ```powershell
-   pip install -r requirements.txt
-   ```
-4. **Setup Env:** Copy `.env.example` to `.env` and adjust values.
-5. **Run Migrations:** `alembic upgrade head`
-6. **Seed Data:** `python scripts/seed_db.py`
-7. **Start Server:**
-   ```powershell
-   uvicorn app.main:app --reload
-   ```
+---
 
-Copy `.env.example` to `.env` and adjust the values according to your local setup.
+## Prerequisites
 
-```env
-# PostgreSQL connection string
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/student_management
+Make sure you have the following installed on your machine:
 
-# Redis cache
-REDIS_URL=redis://localhost:6379/0
+- **Git**
+- **Docker** and **Docker Compose**
+- **Node.js 18+** and **npm** (for the frontend)
 
-# Logging and cache settings
-LOG_LEVEL=INFO
-CACHE_DEFAULT_TTL_SECONDS=60
-
-# App metadata
-APP_NAME=Student Management API
-
-# Optional seed variables (used by scripts/seed_data.py)
-SEED_USER_EMAIL=student@example.com
-SEED_USER_PASSWORD=change_me
-SEED_USER_ROLE=student
-SEED_STUDENT_NAME=Sample Student
-SEED_STUDENT_GPA=3.5
-SEED_STUDENT_DEPARTMENT=Computer Science
-```
-
-> **Note**: If you use `postgresql://...`, the application automatically normalizes it to `postgresql+psycopg://...`.
+---
 
 ## How To Run The Project
 
-### 1. Prerequisites
-Ensure you have the following installed:
-- **Python 3.10+**
-- **PostgreSQL** (running and database created)
-- **Redis** (running)
+You can choose to run the entire project using **Docker Compose** or set up each layer **manually** for development.
 
-### 2. Installation & Setup
+### Option 1: Running with Docker (Recommended)
 
-1. **Clone the repository and enter the directory.**
-2. **Create and activate a virtual environment:**
+Docker Compose will start **PostgreSQL**, **Redis**, and the **FastAPI server** all together.
 
-   **Windows (PowerShell):**
-   ```powershell
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   ```
-   **macOS/Linux:**
+**1. Clone the repository:**
+
+```bash
+git clone https://github.com/Mohamediibra7im/student-management-api.git
+cd student-management-api
+```
+
+**2. Start all services:**
+
+```bash
+docker compose up --build
+```
+
+> This will automatically:
+> - Start PostgreSQL on port `5432`
+> - Start Redis on port `6379`
+> - Run database migrations
+> - Start the API server on port `8000`
+
+---
+
+### Option 2: Manual Setup (Development)
+
+If you prefer to run the services without Docker, follow these steps:
+
+#### 1. Backend Setup
+
+**Prerequisites:** Python 3.12, PostgreSQL, and Redis installed and running.
+
+1. **Navigate to the backend directory:**
    ```bash
-   python3 -m venv .venv
+   cd backend
+   ```
+2. **Create and activate a virtual environment:**
+   ```bash
+   python -m venv .venv
+   # Windows:
+   .venv\Scripts\activate
+   # Mac/Linux:
    source .venv/bin/activate
    ```
-
 3. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
-
 4. **Configure environment variables:**
+   - Copy `.env.example` to `.env`
+   - Update the `DATABASE_URL` and `REDIS_URL` in `.env` to match your local setup.
+5. **Run database migrations:**
    ```bash
-   copy .env.example .env  # Windows
-   cp .env.example .env    # macOS/Linux
+   alembic upgrade head
    ```
-   *Edit `.env` to match your database and redis credentials.*
+6. **Start the FastAPI server:**
+   ```bash
+   uvicorn app.main:app --reload
+   ```
 
-### 3. Database Migrations
-Initialize your database schema:
+#### 2. Frontend Setup
+
+The frontend is a **Next.js** application.
+
+1. **Navigate to the frontend directory:**
+   ```bash
+   cd frontend
+   ```
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+3. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+
+The frontend will be available at `http://localhost:3000`.
+
+> **Note:** The frontend expects the backend API to be running on `http://localhost:8000`. Make sure the backend is started before using the frontend.
+
+---
+
+## Default Credentials
+
+Once the project is running and the database is seeded, you can use the following credentials to log in:
+
+| Role    | Email                  | Password      |
+| ------- | ---------------------- | ------------- |
+| Admin   | `admin@example.com`    | `admin123`    |
+| Student | `student@example.com`  | `password123` |
+
+> **Note:** If you are running manually and haven't seeded the data yet, run `python scripts/seed_data.py` from the `backend` directory.
+
+---
+
+## Accessing the Application
+
+| Service                  | URL                                                      |
+| ------------------------ | -------------------------------------------------------- |
+| **API Root**             | http://localhost:8000                                     |
+| **Swagger Docs**         | http://localhost:8000/docs                                |
+| **ReDoc**                | http://localhost:8000/redoc                               |
+| **Monitoring Metrics**   | http://localhost:8000/monitoring/metrics                   |
+| **Monitoring Dashboard** | http://localhost:8000/monitoring/dashboard                 |
+| **Frontend**             | http://localhost:3000                                     |
+
+---
+
+## Running Tests
+
 ```bash
-alembic upgrade head
+# Navigate to the backend directory
+cd backend
+
+# Run all tests
+pytest
+
+# Run a specific test file
+pytest tests/test_students.py
+
+# Run cache performance test
+python scripts/test_cache_performance.py
 ```
 
-### 4. Running the Application
-Start the FastAPI server:
-```bash
-uvicorn app.main:app --reload
-```
-
-### 5. Accessing the API
-- **API Root:** [http://127.0.0.1:8000](http://127.0.0.1:8000)
-- **Interactive Docs (Swagger):** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **Metrics Endpoint:** [http://127.0.0.1:8000/monitoring/metrics](http://127.0.0.1:8000/monitoring/metrics)
-- **Monitoring Dashboard:** [http://127.0.0.1:8000/monitoring/dashboard](http://127.0.0.1:8000/monitoring/dashboard)
-
-### 6. Seeding Data (Optional)
-To populate the database with sample data:
-```bash
-python scripts/seed_data.py
-```
+---
 
 ## Alembic Migrations
 
-Run migrations:
+Migrations are managed from the `backend/` directory.
+
 ```bash
+cd backend
+
+# Apply all pending migrations
 alembic upgrade head
-```
 
-Create a new migration:
-```bash
-alembic revision --autogenerate -m "your message"
-```
+# Create a new auto-generated migration
+alembic revision --autogenerate -m "describe your changes"
 
-Rollback one revision:
-```bash
+# Rollback one migration
 alembic downgrade -1
+
+# View migration history
+alembic history
 ```
+
+---
+
+## Environment Variables Reference
+
+| Variable                      | Description                              | Default / Example                           |
+| ----------------------------- | ---------------------------------------- | ------------------------------------------- |
+| `DATABASE_URL`                | PostgreSQL connection string             | `postgresql+psycopg://user:pass@host/db`    |
+| `REDIS_URL`                   | Redis connection string                  | `redis://localhost:6379/0`                   |
+| `SECRET_KEY`                  | JWT signing secret                       | *(generate a strong random string)*         |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token expiration time in minutes         | `30`                                        |
+| `JWT_ALGORITHM`               | JWT signing algorithm                    | `HS256`                                     |
+| `BACK_END_ALLOWED_ORIGINS`    | CORS allowed origins                     | `http://localhost:3000`                      |
+| `LOG_LEVEL`                   | Logging level                            | `INFO`                                      |
+| `CACHE_DEFAULT_TTL_SECONDS`   | Default cache TTL in seconds             | `60`                                        |
+| `APP_NAME`                    | Application name shown in docs           | `Student Management API`                    |
+
+---
+
+## Team Contributions
+
+| Member       | Scope                                                            |
+| ------------ | ---------------------------------------------------------------- |
+| **Mohamed**  | Backend Core — project setup, database design, models, migrations, auth, CRUD endpoints |
+| **Salah**    | Caching + Logging + Monitoring — Redis integration, structured logging, monitoring dashboard |
+
+---
 
 ## License
 
