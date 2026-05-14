@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db, require_admin
 from app.models.user import User
-from app.schemas.auth import UserResponse, EmailUpdate, PasswordUpdate, NameUpdate, UserRegister
+from app.schemas.auth import UserResponse, EmailUpdate, PasswordUpdate, NameUpdate, UserRegister, UserUpdate
 from app.utils.hashing import hash_password, verify_password
 
 router = APIRouter()
@@ -37,6 +37,21 @@ def list_users(
     _: User = Depends(require_admin),  # Rejects non-admin users with 403
 ) -> list[User]:
     return db.query(User).order_by(User.id).all()
+
+
+# ──────────────────────────────────────────────
+# GET USER BY ID — Admin only
+# ──────────────────────────────────────────────
+@router.get("/{user_id}", response_model=UserResponse)
+def get_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> User:
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 
 # ──────────────────────────────────────────────
@@ -154,6 +169,45 @@ def admin_update_user(
     from app.utils.logger import get_logger
     logger = get_logger(__name__)
     logger.info(f"Audit: User {user_id} updated by Admin")
+    
+    return user
+
+
+@router.patch("/{user_id}", response_model=UserResponse)
+def patch_user(
+    user_id: int,
+    payload: UserUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> User:
+    """Partial update of a user (PATCH)."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    update_data = payload.model_dump(exclude_unset=True)
+    
+    if "email" in update_data:
+        existing = db.query(User).filter(User.email == str(update_data["email"])).first()
+        if existing and existing.id != user_id:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        user.email = str(update_data["email"])
+    
+    if "password" in update_data and update_data["password"]:
+        user.password = hash_password(update_data["password"])
+        
+    if "full_name" in update_data:
+        user.full_name = update_data["full_name"]
+        
+    if "role" in update_data:
+        user.role = update_data["role"].value
+
+    db.commit()
+    db.refresh(user)
+    
+    from app.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.info(f"Audit: User {user_id} partially updated (PATCH) by Admin")
     
     return user
 
