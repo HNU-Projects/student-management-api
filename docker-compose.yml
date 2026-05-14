@@ -67,8 +67,6 @@ services:
       - prometheus
     restart: always
 
-    restart: always
-
 volumes:
   postgres_data:
   prometheus_data:
