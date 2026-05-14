@@ -102,7 +102,8 @@ def list_students(
 
     logger.debug(f"Cache MISS for {cache_key}")
     query = db.query(Student)
-
+    
+    # Apply optional filters BY name and id
     if search:
         query = query.filter(
             (Student.name.ilike(f"%{search}%")) |

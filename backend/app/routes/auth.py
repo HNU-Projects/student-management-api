@@ -12,6 +12,8 @@ router = APIRouter()
 logger = get_logger(__name__)
 
 
+# Public endpoint — no token needed
+# Returns 201 + user data (password excluded via UserResponse schema)
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register_user(payload: UserRegister, db: Session = Depends(get_db)) -> User:
     existing = db.query(User).filter(User.email == str(payload.email)).first()
@@ -24,20 +26,24 @@ def register_user(payload: UserRegister, db: Session = Depends(get_db)) -> User:
 
     user = User(
         email=str(payload.email),
-        password=hash_password(payload.password),
+        password=hash_password(payload.password),  # never store plain text
         full_name=payload.full_name,
-        role="student",  # Force student role for public registration
+        role="student",  # hardcoded — admins can't self-register publicly
     )
     db.add(user)
     db.commit()
-    db.refresh(user)
+    db.refresh(user)  # reload from DB to get auto-generated id
     logger.info(f"New user registered: {user.email} (Role: {user.role})")
     return user
 
 
+# Public endpoint — no token needed
+# Returns a signed JWT the client must include in future requests
 @router.post("/login", response_model=Token)
 def login(payload: UserLogin, db: Session = Depends(get_db)) -> Token:
     user = db.query(User).filter(User.email == str(payload.email)).first()
+
+    # Same error for wrong email OR wrong password — prevents email enumeration
     if user is None or not verify_password(payload.password, user.password):
         logger.warning(f"Login failed: Invalid credentials for {payload.email}")
         raise HTTPException(
@@ -46,6 +52,7 @@ def login(payload: UserLogin, db: Session = Depends(get_db)) -> Token:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Embed email + role in the token so we can identify the user on each request
     access_token = create_access_token(
         data={"sub": user.email, "role": user.role},
     )
