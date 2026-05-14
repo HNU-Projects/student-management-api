@@ -2,8 +2,7 @@
 # This middleware intercepts EVERY incoming HTTP request and:
 #   1. Measures how long the request takes (response time).
 #   2. Logs the request details (method, path, status code, duration, client IP).
-#   3. Records metrics for the monitoring dashboard.
-#   4. Adds an "X-Response-Time-ms" header to the response.
+#   3. Adds an "X-Response-Time-ms" header to the response.
 #
 # Middleware = code that runs BEFORE and AFTER every request automatically.
 # Think of it as a wrapper around all your route handlers.
@@ -17,7 +16,6 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.utils.jwt import verify_access_token
-from app.monitoring.metrics import metrics_collector
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -55,15 +53,6 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             # === If the route handler crashes (500 error) ===
             duration_ms = (perf_counter() - start) * 1000.0
 
-            # Record the failed request in the metrics system
-            metrics_collector.record_request(
-                method=method,
-                path=path,
-                status_code=500,
-                duration_ms=duration_ms,
-                user=user_email,
-                error_message=str(exc),
-            )
 
             # Log the error with full traceback (logger.exception includes the stack trace)
             logger.exception(
@@ -84,14 +73,6 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         duration_ms = (perf_counter() - start) * 1000.0
         rounded_duration = round(duration_ms, 2)
 
-        # Record the successful request in the metrics system
-        metrics_collector.record_request(
-            method=method,
-            path=path,
-            status_code=response.status_code,
-            duration_ms=rounded_duration,
-            user=user_email,
-        )
 
         # Log the completed request
         logger.info(
