@@ -67,15 +67,6 @@ services:
       - prometheus
     restart: always
 
-  frontend:
-    build: ./frontend
-    container_name: student_frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-    depends_on:
-      - api
     restart: always
 
 volumes:

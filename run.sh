@@ -1,26 +1,40 @@
 #!/bin/bash
 
 # --- Student Management System Run Script ---
-# This script builds and starts the entire application stack using Docker Compose.
+# This script runs the backend in Docker and the frontend locally.
 
 echo "[*] Starting Student Management System..."
 
-# 1. Start the Docker containers
-echo "[+] Building and starting containers (this might take a minute)..."
-docker compose up -d --build
+# 1. Start the Docker backend containers
+echo "[+] Starting backend services (DB, Redis, API, Monitoring)..."
+docker compose up -d db redis api prometheus grafana
 
-if [ $? -eq 0 ]; then
-    echo "[!] System is up and running!"
-    echo ""
-    echo "🔗 Access Links:"
-    echo "--------------------------------------------------"
-    echo "Frontend:    http://localhost:3000"
-    echo "Backend API:  http://localhost:8000"
-    echo "Monitoring:  http://localhost:3001 (Grafana)"
-    echo "--------------------------------------------------"
-    echo ""
-    echo "Logs:    docker compose logs -f"
-    echo "Stop:    docker compose down"
-else
-    echo "[!] Failed to start the system. Please check if Docker is running."
+if [ $? -ne 0 ]; then
+    echo "[!] Failed to start Docker services. Please check if Docker is running."
+    exit 1
 fi
+
+# 2. Setup and run the frontend locally
+echo "[+] Setting up frontend..."
+cd frontend
+
+echo "[+] Installing frontend dependencies..."
+npm install
+
+if [ $? -ne 0 ]; then
+    echo "[!] npm install failed."
+    exit 1
+fi
+
+echo "[!] System is partially up. Backend is in Docker, starting Frontend locally..."
+echo ""
+echo "Access Links:"
+echo "--------------------------------------------------"
+echo "Frontend:    http://localhost:3000 (Running now...)"
+echo "Backend API:  http://localhost:8000"
+echo "Monitoring:  http://localhost:3001 (Grafana)"
+echo "--------------------------------------------------"
+echo ""
+
+# 3. Run frontend dev server
+npm run dev
