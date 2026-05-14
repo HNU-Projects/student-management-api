@@ -85,7 +85,7 @@ def list_students(
 ) -> list[Student]:
     query = db.query(Student)
     
-    # Apply optional filters
+    # Apply optional filters by ID and Name
     if search:
         query = query.filter(
             (Student.name.ilike(f"%{search}%")) | 
