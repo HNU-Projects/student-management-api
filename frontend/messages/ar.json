@@ -336,7 +336,15 @@
     "go_to_login": "سجل دخولك من هنا",
     "back_to_home": "العودة للرئيسية",
     "login_required": "يرجى تسجيل الدخول للوصول إلى هذه الصفحة",
-    "permission_denied": "ليس لديك صلاحية للوصول إلى هذه الصفحة"
+    "permission_denied": "ليس لديك صلاحية للوصول إلى هذه الصفحة",
+    "login_success_title": "تم تسجيل الدخول بنجاح",
+    "login_success_desc": "مرحباً بعودتك، {name}!",
+    "login_failed_title": "فشل تسجيل الدخول",
+    "login_failed_desc": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "register_success_title": "تم إنشاء الحساب بنجاح",
+    "register_success_desc": "تم إنشاء حسابك. يمكنك الآن تسجيل الدخول.",
+    "register_failed_title": "فشل إنشاء الحساب",
+    "register_failed_desc": "تعذر إكمال عملية التسجيل"
   },
   "Settings": {
     "title": "إعدادات النظام",

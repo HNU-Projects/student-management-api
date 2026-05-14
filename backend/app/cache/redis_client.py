@@ -24,6 +24,12 @@ class CacheBackend(Protocol):
 
     def set(self, key: str, value: str, ttl_seconds: int) -> None: ...  # Store a value with a time-to-live
 
+    def incr(self, key: str) -> int: ...                 # Increment a counter key
+
+    def expire(self, key: str, ttl_seconds: int) -> bool: ... # Set expiry for a key
+
+    def ttl(self, key: str) -> int: ...                  # Get remaining TTL for a key
+
     def delete(self, key: str) -> None: ...              # Delete a single key
 
     def delete_prefix(self, prefix: str) -> int: ...     # Delete all keys starting with a given prefix
@@ -46,6 +52,18 @@ class RedisCacheBackend:
         # Store a value with an expiry time (ex = expiry in seconds).
         # After ttl_seconds, Redis automatically deletes the key.
         self._client.set(name=key, value=value, ex=ttl_seconds)
+
+    def incr(self, key: str) -> int:
+        # Atomically increment a counter key.
+        return self._client.incr(key)
+
+    def expire(self, key: str, ttl_seconds: int) -> bool:
+        # Set expiry for a key in seconds.
+        return self._client.expire(name=key, time=ttl_seconds)
+
+    def ttl(self, key: str) -> int:
+        # Get remaining TTL for a key. Returns -2 if key doesn't exist, -1 if no expiry.
+        return self._client.ttl(key)
 
     def delete(self, key: str) -> None:
         # Remove a specific key from the cache.
@@ -94,6 +112,37 @@ class InMemoryCacheBackend:
         self._store[key] = _MemoryValue(
             value=value, expires_at=time.time() + ttl_seconds
         )
+
+    def incr(self, key: str) -> int:
+        item = self._store.get(key)
+        if item is None or item.expires_at < time.time():
+            # Treat as 0 and increment to 1
+            # We don't have a default TTL here, but we can set a long one or handle it in the caller
+            self.set(key, "1", 3600)  # Default 1 hour if not specified
+            return 1
+        
+        try:
+            new_val = int(item.value) + 1
+            item.value = str(new_val)
+            return new_val
+        except ValueError:
+            # If not an integer, reset to 1
+            self.set(key, "1", 3600)
+            return 1
+
+    def expire(self, key: str, ttl_seconds: int) -> bool:
+        item = self._store.get(key)
+        if item is None:
+            return False
+        item.expires_at = time.time() + ttl_seconds
+        return True
+
+    def ttl(self, key: str) -> int:
+        item = self._store.get(key)
+        if item is None:
+            return -2
+        remaining = int(item.expires_at - time.time())
+        return max(remaining, -1)
 
     def delete(self, key: str) -> None:
         # Remove a key safely — pop with None default avoids KeyError if missing.

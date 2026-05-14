@@ -31,6 +31,10 @@ class Settings:
     access_token_expire_minutes: int   # How long a JWT token stays valid (in minutes)
     jwt_algorithm: str                 # Algorithm used for JWT signing (e.g., HS256)
     back_end_allowed_origins: list[str]  # CORS — which frontend URLs are allowed to call this API
+    rate_limit_requests: int           # Max requests allowed in the window
+    rate_limit_window: int             # Window duration in seconds
+    rate_limit_penalty_base: int       # Initial lockout duration in seconds
+    rate_limit_penalty_multiplier: float # How much the penalty grows exponentially
 
 
     def validate(self) -> None:
@@ -47,6 +51,10 @@ class Settings:
             raise ValueError("SECRET_KEY is required. Set it in the .env file.")
         if self.access_token_expire_minutes <= 0:
             raise ValueError("ACCESS_TOKEN_EXPIRE_MINUTES must be greater than 0.")
+        if self.rate_limit_requests <= 0:
+            raise ValueError("RATE_LIMIT_REQUESTS must be greater than 0.")
+        if self.rate_limit_window <= 0:
+            raise ValueError("RATE_LIMIT_WINDOW must be greater than 0.")
 
 
 def _normalize_database_url(database_url: str) -> str:
@@ -78,6 +86,10 @@ def get_settings() -> Settings:
         access_token_expire_minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")),
         jwt_algorithm=os.getenv("JWT_ALGORITHM", "HS256"),
         back_end_allowed_origins=os.getenv("BACK_END_ALLOWED_ORIGINS", "http://localhost:3000").split(","),
+        rate_limit_requests=int(os.getenv("RATE_LIMIT_REQUESTS", "20")),
+        rate_limit_window=int(os.getenv("RATE_LIMIT_WINDOW", "60")),
+        rate_limit_penalty_base=int(os.getenv("RATE_LIMIT_PENALTY_BASE", "60")),
+        rate_limit_penalty_multiplier=float(os.getenv("RATE_LIMIT_PENALTY_MULTIPLIER", "2.0")),
     )
     resolved_settings.validate()
 

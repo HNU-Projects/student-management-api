@@ -333,7 +333,15 @@
     "go_to_login": "Log in here",
     "back_to_home": "Back to Home",
     "login_required": "Please login to access this page",
-    "permission_denied": "You don't have permission to access this page"
+    "permission_denied": "You don't have permission to access this page",
+    "login_success_title": "Login Successful",
+    "login_success_desc": "Welcome back, {name}!",
+    "login_failed_title": "Login Failed",
+    "login_failed_desc": "Invalid email or password",
+    "register_success_title": "Registration Successful",
+    "register_success_desc": "Your account has been created. Please log in.",
+    "register_failed_title": "Registration Failed",
+    "register_failed_desc": "Could not complete registration"
   },
   "Settings": {
     "title": "System Settings",

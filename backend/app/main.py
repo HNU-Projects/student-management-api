@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
 from app.middlewares.logging_middleware import LoggingMiddleware
+from app.middlewares.rate_limit_middleware import RateLimitMiddleware
 from app.routes import auth, users, students, monitoring
 from app.utils.logger import configure_logging
 
@@ -34,6 +35,7 @@ app = FastAPI(
 # Middleware (order matters – outermost is listed first)
 # ---------------------------------------------------------------------------
 app.add_middleware(LoggingMiddleware)
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.back_end_allowed_origins,

@@ -3,10 +3,14 @@ import { authService } from "../services/auth.service";
 import { UserRegister, UserLogin, EmailUpdate, PasswordUpdate, NameUpdate } from "../types";
 import { queryKeys } from "@/utils/queryKeys";
 import { useRouter } from "@/i18n/routing";
+import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 export const useAuthMutations = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const t = useTranslations('Auth');
+  const ts = useTranslations('Settings'); // For generic messages
 
   const updateNameMutation = useMutation({
     mutationFn: (data: NameUpdate) => authService.updateName(data),
@@ -44,24 +48,38 @@ export const useAuthMutations = () => {
         } else {
           router.push("/dashboard");
         }
+        
+        toast.success(t('login_success_title', { defaultValue: "Login Successful" }), {
+          description: t('login_success_desc', { name: user.full_name, defaultValue: `Welcome back, ${user.full_name}!` }),
+        });
       } catch {
         // If getMe fails, still redirect to dashboard
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.user });
         router.push("/dashboard");
+        toast.success(t('login_success_title', { defaultValue: "Login Successful" }));
       }
     },
-    onError: (error) => {
-      console.error("Login failed:", error);
+    onError: (error: any) => {
+      const message = error.response?.data?.detail || t('login_failed_desc', { defaultValue: "Invalid email or password" });
+      toast.error(t('login_failed_title', { defaultValue: "Login Failed" }), {
+        description: message,
+      });
     }
   });
 
   const registerMutation = useMutation({
     mutationFn: (data: UserRegister) => authService.register(data),
     onSuccess: () => {
+      toast.success(t('register_success_title', { defaultValue: "Registration Successful" }), {
+        description: t('register_success_desc', { defaultValue: "Your account has been created. Please log in." }),
+      });
       router.push("/login");
     },
-    onError: (error) => {
-      console.error("Registration failed:", error);
+    onError: (error: any) => {
+      const message = error.response?.data?.detail || t('register_failed_desc', { defaultValue: "Could not complete registration" });
+      toast.error(t('register_failed_title', { defaultValue: "Registration Failed" }), {
+        description: message,
+      });
     }
   });
 
