@@ -1,3 +1,11 @@
+# === Application Entry Point ===
+# This is the heart of the FastAPI application. It:
+#   1. Initializes the FastAPI app instance.
+#   2. Configures Global Middlewares (CORS, Logging).
+#   3. Sets up Prometheus instrumentation for Grafana.
+#   4. Defines Global Exception Handlers for consistent error responses.
+#   5. Mounts all API routers (Auth, Users, Students, Monitoring).
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,15 +18,17 @@ from app.middlewares.logging_middleware import LoggingMiddleware
 from app.routes import auth, users, students, monitoring
 from app.utils.logger import configure_logging
 
-# ---------------------------------------------------------------------------
-# Initialise structured logging early
-# ---------------------------------------------------------------------------
+# --- 1. Initialise structured logging early ---
+# Ensures all logs follow a consistent JSON format from the start.
 configure_logging()
 
-# ---------------------------------------------------------------------------
-# Create the application
-# ---------------------------------------------------------------------------
-app = FastAPI(title=settings.app_name)
+# --- 2. Create the FastAPI application ---
+app = FastAPI(
+    title=settings.app_name,
+    description="Backend API for Student Management System",
+    version="1.0.0"
+)
+
 
 # ---------------------------------------------------------------------------
 # Middleware (order matters – outermost is listed first)
