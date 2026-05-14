@@ -1,6 +1,6 @@
 from collections.abc import Callable, Iterable
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from app.core.security import oauth2_scheme
@@ -21,6 +21,7 @@ _forbidden_exception = HTTPException(
 
 
 def get_current_user(
+    request: Request,
     db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme),
 ) -> User:
@@ -43,9 +44,13 @@ def get_current_user(
 
     token_role = payload.get("role")
     if token_role is not None and token_role != user.role:
+
         raise _credentials_exception
 
+    # Attach to request state for middleware access
+    request.state.user = user
     return user
+
 
 
 def require_admin(

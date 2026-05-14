@@ -41,3 +41,8 @@ export interface PasswordUpdate {
   current_password: string;
   new_password: string;
 }
+
+export interface NameUpdate {
+  full_name: string;
+}
+

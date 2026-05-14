@@ -1,3 +1,6 @@
+import hashlib
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -11,6 +14,25 @@ from app.utils.logger import get_logger
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+
+def _list_cache_key(
+    search: str | None,
+    department: str | None,
+    status_filter: str | None,
+    gpa_min: float | None,
+    gpa_max: float | None,
+    skip: int,
+    limit: int,
+) -> str:
+    """Build a deterministic cache key for the list endpoint."""
+    raw = json.dumps(
+        {"s": search, "d": department, "st": status_filter,
+         "gmin": gpa_min, "gmax": gpa_max, "sk": skip, "l": limit},
+        sort_keys=True,
+    )
+    digest = hashlib.md5(raw.encode()).hexdigest()[:12]
+    return f"students:list:{digest}"
 
 
 @router.post("/", response_model=StudentResponse, status_code=status.HTTP_201_CREATED)
@@ -56,29 +78,56 @@ def list_students(
     _: User = Depends(require_admin),
     search: str | None = Query(None, description="Search by name or university ID"),
     department: str | None = None,
-    status: str | None = None,
+    status_filter: str | None = Query(None, alias="status"),
     gpa_min: float | None = Query(None, ge=0, le=4.0),
     gpa_max: float | None = Query(None, ge=0, le=4.0),
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
 ) -> list[Student]:
+    # Cache-Aside: check cache first
+    cache_key = _list_cache_key(search, department, status_filter, gpa_min, gpa_max, skip, limit)
+    cached = cache_manager.get_json(cache_key)
+    if cached is not None:
+        logger.debug(f"Cache HIT for {cache_key}")
+        return [Student(**item) for item in cached]
+
+    logger.debug(f"Cache MISS for {cache_key}")
     query = db.query(Student)
-    
+
     if search:
         query = query.filter(
-            (Student.name.ilike(f"%{search}%")) | 
+            (Student.name.ilike(f"%{search}%")) |
             (Student.university_id.ilike(f"%{search}%"))
         )
     if department:
         query = query.filter(Student.department == department)
-    if status:
-        query = query.filter(Student.status == status)
+    if status_filter:
+        query = query.filter(Student.status == status_filter)
     if gpa_min is not None:
         query = query.filter(Student.gpa >= gpa_min)
     if gpa_max is not None:
         query = query.filter(Student.gpa <= gpa_max)
-    
+
     students = query.order_by(Student.id).offset(skip).limit(limit).all()
+
+    # Store in cache
+    students_data = [
+        {
+            "id": s.id,
+            "university_id": s.university_id,
+            "name": s.name,
+            "birth_date": s.birth_date.isoformat() if s.birth_date else None,
+            "gender": s.gender,
+            "phone_number": s.phone_number,
+            "gpa": s.gpa,
+            "department": s.department,
+            "enrollment_date": s.enrollment_date.isoformat(),
+            "status": s.status,
+            "user_id": s.user_id,
+        }
+        for s in students
+    ]
+    cache_manager.set_json(cache_key, students_data)
     return students
 
 
@@ -135,6 +184,41 @@ def get_student(
     return student
 
 
+@router.put("/{student_id}", response_model=StudentResponse)
+def replace_student(
+    student_id: int,
+    payload: StudentCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Student:
+    """Full replacement update of a student record (PUT)."""
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    if current_user.role != "admin" and student.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    update_data = payload.model_dump()
+    for key, value in update_data.items():
+        setattr(student, key, value)
+
+    # Sync name with User if it exists
+    user = db.query(User).filter(User.id == student.user_id).first()
+    if user:
+        user.full_name = student.name
+
+    db.commit()
+    db.refresh(student)
+
+
+    logger.info(f"Audit: Student {student_id} fully updated (PUT) by User {current_user.id}")
+
+    cache_manager.invalidate_key(f"students:detail:{student_id}")
+    cache_manager.invalidate_prefix("students:list")
+    return student
+
+
 @router.patch("/{student_id}", response_model=StudentResponse)
 def update_student(
     student_id: int,
@@ -142,27 +226,32 @@ def update_student(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Student:
+    """Partial update of a student record (PATCH)."""
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    
-    # Permission check: Admin or the student themselves
+
     if current_user.role != "admin" and student.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    
+
     update_data = payload.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(student, key, value)
-    
+
+    # Sync name with User if it exists and name was updated
+    if "name" in update_data:
+        user = db.query(User).filter(User.id == student.user_id).first()
+        if user:
+            user.full_name = update_data["name"]
+
     db.commit()
     db.refresh(student)
-    
-    logger.info(f"Audit: Student {student_id} updated by User {current_user.id}")
-    
-    # Invalidate caches
+
+
+    logger.info(f"Audit: Student {student_id} partially updated (PATCH) by User {current_user.id}")
+
     cache_manager.invalidate_key(f"students:detail:{student_id}")
     cache_manager.invalidate_prefix("students:list")
-    
     return student
 
 
@@ -170,17 +259,17 @@ def update_student(
 def delete_student(
     student_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
 ) -> None:
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    
+
     db.delete(student)
     db.commit()
-    
-    logger.info(f"Audit: Student {student_id} deleted by User {current_user.id}")
-    
+
+    logger.info(f"Audit: Student {student_id} deleted by Admin {current_user.id}")
+
     # Invalidate caches
     cache_manager.invalidate_key(f"students:detail:{student_id}")
     cache_manager.invalidate_prefix("students:list")

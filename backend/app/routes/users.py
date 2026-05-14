@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db, require_admin
 from app.models.user import User
-from app.schemas.auth import UserResponse, EmailUpdate, PasswordUpdate, UserRegister
+from app.schemas.auth import UserResponse, EmailUpdate, PasswordUpdate, NameUpdate, UserRegister
 from app.utils.hashing import hash_password, verify_password
 
 router = APIRouter()
@@ -68,6 +68,18 @@ def update_email(
     return current_user
 
 
+@router.put("/me/name", response_model=UserResponse)
+def update_name(
+    payload: NameUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> User:
+    current_user.full_name = payload.full_name
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 @router.put("/me/password")
 def update_password(
     payload: PasswordUpdate,
@@ -85,7 +97,43 @@ def update_password(
     return {"detail": "Password updated successfully"}
 
 
+@router.put("/{user_id}", response_model=UserResponse)
+def admin_update_user(
+    user_id: int,
+    payload: UserRegister, # Using UserRegister to allow updating name/role
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> User:
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if email is being changed and if it's taken
+    if user.email != str(payload.email):
+        existing = db.query(User).filter(User.email == str(payload.email)).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        user.email = str(payload.email)
+
+    user.full_name = payload.full_name
+    user.role = payload.role.value
+    
+    # Only update password if provided
+    if payload.password:
+        user.password = hash_password(payload.password)
+        
+    db.commit()
+    db.refresh(user)
+    
+    from app.utils.logger import get_logger
+    logger = get_logger(__name__)
+    logger.info(f"Audit: User {user_id} updated by Admin")
+    
+    return user
+
+
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),

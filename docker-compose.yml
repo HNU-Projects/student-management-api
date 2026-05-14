@@ -36,5 +36,38 @@ services:
       - "8000:8000"
     restart: always
 
+  # ---- Monitoring stack ----
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: student_prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api
+    restart: always
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: student_grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    restart: always
+
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:

@@ -46,3 +46,8 @@ class EmailUpdate(BaseModel):
 class PasswordUpdate(BaseModel):
     current_password: str
     new_password: str = Field(min_length=1)
+
+
+class NameUpdate(BaseModel):
+    full_name: str = Field(min_length=1, max_length=150)
+

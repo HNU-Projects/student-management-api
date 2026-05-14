@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authService } from "../services/auth.service";
-import { UserRegister, UserLogin, EmailUpdate, PasswordUpdate } from "../types";
+import { UserRegister, UserLogin, EmailUpdate, PasswordUpdate, NameUpdate } from "../types";
 import { queryKeys } from "@/utils/queryKeys";
 import { useRouter } from "@/i18n/routing";
 
@@ -8,7 +8,24 @@ export const useAuthMutations = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
 
+  const updateNameMutation = useMutation({
+    mutationFn: (data: NameUpdate) => authService.updateName(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.user });
+    },
+  });
+
+  const adminUpdateUserMutation = useMutation({
+    mutationFn: ({ userId, data }: { userId: number, data: UserRegister }) => authService.adminUpdateUser(userId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.users });
+    },
+  });
+
+
+
   const loginMutation = useMutation({
+
     mutationFn: (data: UserLogin) => authService.login(data),
     onSuccess: async (data) => {
       // Store the token
@@ -87,6 +104,10 @@ export const useAuthMutations = () => {
     deleteUserMutation,
     updateEmailMutation,
     updatePasswordMutation,
+    updateNameMutation,
+    adminUpdateUserMutation,
     logout,
   };
+
 };
+

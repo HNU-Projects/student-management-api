@@ -32,6 +32,21 @@ export const useStudentMutations = () => {
     },
   });
 
+  const replaceStudentMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: StudentCreate }) =>
+      studentService.replaceStudent(id, data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.students.detail(variables.id),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.students.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.students.stats });
+    },
+    onError: (error) => {
+      console.error("Replace student failed:", error);
+    },
+  });
+
   const deleteStudentMutation = useMutation({
     mutationFn: (id: number) => studentService.deleteStudent(id),
     onSuccess: () => {
@@ -46,6 +61,8 @@ export const useStudentMutations = () => {
   return {
     createStudentMutation,
     updateStudentMutation,
+    replaceStudentMutation,
     deleteStudentMutation,
   };
 };
+

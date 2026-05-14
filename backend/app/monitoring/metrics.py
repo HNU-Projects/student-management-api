@@ -32,6 +32,7 @@ class MetricsCollector:
         self._total_errors = 0
         self._endpoint_metrics: dict[str, EndpointMetrics] = {}
         self._recent_errors: deque[dict[str, object]] = deque(maxlen=25)
+        self._audit_logs: deque[dict[str, object]] = deque(maxlen=50)
 
     def record_request(
         self,
@@ -39,6 +40,7 @@ class MetricsCollector:
         path: str,
         status_code: int,
         duration_ms: float,
+        user: str = "anonymous",
         error_message: str | None = None,
     ) -> None:
         key = f"{method.upper()} {path}"
@@ -53,6 +55,20 @@ class MetricsCollector:
             endpoint = self._endpoint_metrics.setdefault(key, EndpointMetrics())
             endpoint.request_count += 1
             endpoint.total_duration_ms += rounded_duration
+            
+            # Record in general audit logs
+            self._audit_logs.appendleft(
+                {
+                    "timestamp": datetime.now(UTC).isoformat(),
+                    "path": path,
+                    "method": method.upper(),
+                    "status_code": status_code,
+                    "duration_ms": rounded_duration,
+                    "user": user,
+                }
+            )
+
+
             if is_error:
                 endpoint.error_count += 1
                 self._recent_errors.appendleft(
@@ -93,7 +109,9 @@ class MetricsCollector:
                 "system_health": system_health,
                 "endpoints": endpoints,
                 "recent_errors": list(self._recent_errors),
+                "audit_logs": list(self._audit_logs),
             }
+
 
 
 metrics_collector = MetricsCollector()

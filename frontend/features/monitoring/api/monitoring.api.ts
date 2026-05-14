@@ -1,6 +1,6 @@
 import api from "@/lib/axios";
 
 export const monitoringApi = {
-  getHealth: () => api.get("/health"),
+  getHealth: () => api.get("/monitoring/health"),
   getMetrics: () => api.get("/monitoring/metrics"),
 };

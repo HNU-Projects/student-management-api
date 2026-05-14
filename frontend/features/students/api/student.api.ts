@@ -25,6 +25,9 @@ export const studentApi = {
   updateStudent: (id: number, data: StudentUpdate) =>
     api.patch<StudentResponse>(`/students/${id}`, data),
 
+  replaceStudent: (id: number, data: StudentCreate) =>
+    api.put<StudentResponse>(`/students/${id}`, data),
+
   deleteStudent: (id: number) =>
     api.delete(`/students/${id}`),
 };
