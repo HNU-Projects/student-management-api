@@ -1,2 +1,4 @@
 # === Monitoring Package Init ===
-# This package is currently used for Prometheus monitoring configuration.
+from app.monitoring.metrics import metrics_collector
+
+__all__ = ["metrics_collector"]

@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
 from app.middlewares.logging_middleware import LoggingMiddleware
-from app.routes import auth, users, students
+from app.routes import auth, users, students, monitoring
 from app.utils.logger import configure_logging
 
 # ---------------------------------------------------------------------------
@@ -84,6 +84,7 @@ async def validation_exception_handler(
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(students.router, prefix="/students", tags=["Students"])
+app.include_router(monitoring.router, prefix="/monitoring", tags=["Monitoring"])
 
 
 @app.get("/", tags=["Root"])

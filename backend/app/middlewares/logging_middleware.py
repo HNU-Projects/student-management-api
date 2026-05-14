@@ -15,6 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.monitoring.metrics import metrics_collector
 from app.utils.jwt import verify_access_token
 from app.utils.logger import get_logger
 
@@ -53,6 +54,16 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             # === If the route handler crashes (500 error) ===
             duration_ms = (perf_counter() - start) * 1000.0
 
+            # Record the failed request in the metrics system
+            metrics_collector.record_request(
+                method=method,
+                path=path,
+                status_code=500,
+                duration_ms=duration_ms,
+                user=user_email,
+                error_message=str(exc),
+            )
+
 
             # Log the error with full traceback (logger.exception includes the stack trace)
             logger.exception(
@@ -72,6 +83,15 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # === AFTER the request is processed successfully ===
         duration_ms = (perf_counter() - start) * 1000.0
         rounded_duration = round(duration_ms, 2)
+
+        # Record the successful request in the metrics system
+        metrics_collector.record_request(
+            method=method,
+            path=path,
+            status_code=response.status_code,
+            duration_ms=rounded_duration,
+            user=user_email,
+        )
 
 
         # Log the completed request

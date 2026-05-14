@@ -15,6 +15,8 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+import platform
+import time
 from threading import Lock
 
 
@@ -51,6 +53,7 @@ class MetricsCollector:
         self._lock = Lock()
         self._total_requests = 0
         self._total_errors = 0
+        self._start_time = time.time()
         self._endpoint_metrics: dict[str, EndpointMetrics] = {}
         self._recent_errors: deque[dict[str, object]] = deque(maxlen=25)
         self._audit_logs: deque[dict[str, object]] = deque(maxlen=50)
@@ -108,6 +111,16 @@ class MetricsCollector:
                         "error": error_message or "Unhandled server error",
                     }
                 )
+
+    def get_system_info(self) -> dict[str, object]:
+        """Returns basic system and uptime information."""
+        return {
+            "uptime_seconds": int(time.time() - self._start_time),
+            "system": {
+                "platform": platform.system(),
+                "python_version": platform.python_version(),
+            }
+        }
 
     def snapshot(self) -> dict[str, object]:
         """
