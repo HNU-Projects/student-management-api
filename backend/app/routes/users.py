@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db, require_admin
 from app.models.user import User
+from app.models.student import Student
 from app.schemas.auth import UserResponse, EmailUpdate, PasswordUpdate, NameUpdate, UserRegister, UserUpdate
 from app.utils.hashing import hash_password, verify_password
 
@@ -34,9 +35,20 @@ def read_users_me(current_user: User = Depends(get_current_user)) -> User:
 @router.get("/", response_model=list[UserResponse])
 def list_users(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),  # Rejects non-admin users with 403
+    _: User = Depends(require_admin),
+    search: str | None = None,
+    role: str | None = None,
+    skip: int = 0,
+    limit: int = 100,
 ) -> list[User]:
-    return db.query(User).order_by(User.id).all()
+    query = db.query(User)
+    if search:
+        query = query.filter(
+            (User.full_name.ilike(f"%{search}%")) | (User.email.ilike(f"%{search}%"))
+        )
+    if role:
+        query = query.filter(User.role == role)
+    return query.order_by(User.id).offset(skip).limit(limit).all()
 
 
 # ──────────────────────────────────────────────
@@ -115,6 +127,12 @@ def update_name(
     current_user: User = Depends(get_current_user),
 ) -> User:
     current_user.full_name = payload.full_name
+    
+    # Sync with student record if it exists
+    student = db.query(Student).filter(Student.user_id == current_user.id).first()
+    if student:
+        student.name = payload.full_name
+        
     db.commit()
     db.refresh(current_user)
     return current_user
@@ -159,6 +177,11 @@ def admin_update_user(
     user.full_name = payload.full_name
     user.role = payload.role.value
     
+    # Sync with student record if it exists
+    student = db.query(Student).filter(Student.user_id == user_id).first()
+    if student:
+        student.name = payload.full_name
+        
     # Only update password if provided
     if payload.password:
         user.password = hash_password(payload.password)
@@ -198,7 +221,11 @@ def patch_user(
         
     if "full_name" in update_data:
         user.full_name = update_data["full_name"]
-        
+        # Sync with student record if it exists
+        student = db.query(Student).filter(Student.user_id == user_id).first()
+        if student:
+            student.name = update_data["full_name"]
+            
     if "role" in update_data:
         user.role = update_data["role"].value
 

@@ -63,6 +63,10 @@ def create_student(
     # Create and save the student
     student = Student(**payload.model_dump())
     db.add(student)
+    
+    # Sync name with User
+    user.full_name = student.name
+    
     db.commit()
     db.refresh(student)
     

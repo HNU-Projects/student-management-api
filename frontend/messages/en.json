@@ -240,7 +240,8 @@
     "university_id_placeholder": "e.g. 20240001",
     "department_placeholder": "e.g. Computer Science",
     "name_placeholder": "e.g. John Doe",
-    "phone_placeholder": "e.g. +20 123 456 7890"
+    "phone_placeholder": "e.g. +20 123 456 7890",
+    "cancel": "Cancel"
   },
   "Users": {
     "title": "Users Management",

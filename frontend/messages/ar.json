@@ -243,7 +243,8 @@
     "university_id_placeholder": "مثال: 20240001",
     "department_placeholder": "مثال: علوم الحاسب",
     "name_placeholder": "مثال: أحمد محمد",
-    "phone_placeholder": "مثال: +20 123 456 7890"
+    "phone_placeholder": "مثال: +20 123 456 7890",
+    "cancel": "إلغاء"
   },
   "Users": {
     "title": "إدارة المستخدمين",
