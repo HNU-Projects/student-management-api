@@ -1,3 +1,13 @@
+# === Logging Middleware ===
+# This middleware intercepts EVERY incoming HTTP request and:
+#   1. Measures how long the request takes (response time).
+#   2. Logs the request details (method, path, status code, duration, client IP).
+#   3. Records metrics for the monitoring dashboard.
+#   4. Adds an "X-Response-Time-ms" header to the response.
+#
+# Middleware = code that runs BEFORE and AFTER every request automatically.
+# Think of it as a wrapper around all your route handlers.
+
 from __future__ import annotations
 
 from time import perf_counter
@@ -32,6 +42,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 user_email = "invalid-token"
 
         try:
+            # === Pass the request to the actual route handler ===
             response = await call_next(request)
             
             # After call_next, if a dependency set user in request.state, use that as it's more reliable
@@ -41,7 +52,10 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 user_email = request.state.user.email
 
         except Exception as exc:
+            # === If the route handler crashes (500 error) ===
             duration_ms = (perf_counter() - start) * 1000.0
+
+            # Record the failed request in the metrics system
             metrics_collector.record_request(
                 method=method,
                 path=path,
@@ -50,6 +64,8 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 user=user_email,
                 error_message=str(exc),
             )
+
+            # Log the error with full traceback (logger.exception includes the stack trace)
             logger.exception(
                 "request_failed",
                 extra={
@@ -62,11 +78,13 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                     "error": str(exc),
                 },
             )
-            raise
+            raise  # Re-raise so FastAPI can return a proper 500 response
 
+        # === AFTER the request is processed successfully ===
         duration_ms = (perf_counter() - start) * 1000.0
         rounded_duration = round(duration_ms, 2)
 
+        # Record the successful request in the metrics system
         metrics_collector.record_request(
             method=method,
             path=path,
@@ -75,6 +93,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             user=user_email,
         )
 
+        # Log the completed request
         logger.info(
             "request_completed",
             extra={
@@ -87,6 +106,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             },
         )
 
+        # Add response time to the HTTP headers so the client can see it too
         response.headers["X-Response-Time-ms"] = str(rounded_duration)
         return response
 

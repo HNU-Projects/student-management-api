@@ -41,24 +41,26 @@ def create_student(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Student:
-    # Permission check: Admin can create for anyone, student only for themselves
+    # Permission: admins can create for anyone; students only for themselves
     if current_user.role != "admin" and payload.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    # Check if user exists
+
+    # Verify the target user exists
     user = db.query(User).filter(User.id == payload.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Check if student already exists for this user
+    # Prevent duplicate student records for the same user
     existing = db.query(Student).filter(Student.user_id == payload.user_id).first()
     if existing:
         raise HTTPException(status_code=400, detail="Student record already exists for this user")
 
-    # Check if university_id is unique
+    # Ensure university_id is globally unique
     existing_id = db.query(Student).filter(Student.university_id == payload.university_id).first()
     if existing_id:
         raise HTTPException(status_code=400, detail="University ID already exists")
 
+    # Create and save the student
     student = Student(**payload.model_dump())
     db.add(student)
     db.commit()
@@ -66,23 +68,26 @@ def create_student(
     
     logger.info(f"Audit: Student created by User {current_user.id}. Student ID: {student.id}, University ID: {student.university_id}")
     
-    # Invalidate list cache
+    # Clear cached student lists since data has changed
     cache_manager.invalidate_prefix("students:list")
     
     return student
 
 
+# ──────────────────────────────────────────────
+# LIST — Get all students with optional filters (admin only)
+# ──────────────────────────────────────────────
 @router.get("/", response_model=list[StudentResponse])
 def list_students(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_admin),  # Only admins can list all students
     search: str | None = Query(None, description="Search by name or university ID"),
     department: str | None = None,
     status_filter: str | None = Query(None, alias="status"),
     gpa_min: float | None = Query(None, ge=0, le=4.0),
     gpa_max: float | None = Query(None, ge=0, le=4.0),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
+    skip: int = Query(0, ge=0),      # Pagination: how many to skip
+    limit: int = Query(10, ge=1, le=100),  # Pagination: max results per page
 ) -> list[Student]:
     # Cache-Aside: check cache first
     cache_key = _list_cache_key(search, department, status_filter, gpa_min, gpa_max, skip, limit)
@@ -131,6 +136,9 @@ def list_students(
     return students
 
 
+# ──────────────────────────────────────────────
+# GET MY PROFILE — Current user's own student record
+# ──────────────────────────────────────────────
 @router.get("/me", response_model=StudentResponse)
 def get_my_student_profile(
     db: Session = Depends(get_db),
@@ -142,30 +150,34 @@ def get_my_student_profile(
     return student
 
 
+# ──────────────────────────────────────────────
+# GET BY ID — Fetch a specific student (uses cache)
+# ──────────────────────────────────────────────
 @router.get("/{student_id}", response_model=StudentResponse)
 def get_student(
     student_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Student:
-    # Try cache first
+    # Check the cache first for faster response
     cache_key = f"students:detail:{student_id}"
     cached = cache_manager.get_json(cache_key)
     if cached:
-        # Check permissions on cached data
+        # Even from cache, verify the user has permission to view
         if current_user.role != "admin" and cached["user_id"] != current_user.id:
             raise HTTPException(status_code=403, detail="Not enough permissions")
         return Student(**cached)
 
+    # Cache miss — query the database
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     
-    # Permission check: Admin or the student themselves
+    # Permission: admins can view anyone; students only themselves
     if current_user.role != "admin" and student.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
     
-    # Cache the result (convert to dict for JSON)
+    # Store in cache for future requests
     student_data = {
         "id": student.id,
         "university_id": student.university_id,
@@ -255,6 +267,9 @@ def update_student(
     return student
 
 
+# ──────────────────────────────────────────────
+# DELETE — Remove a student record (admin only)
+# ──────────────────────────────────────────────
 @router.delete("/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_student(
     student_id: int,
@@ -275,27 +290,34 @@ def delete_student(
     cache_manager.invalidate_prefix("students:list")
 
 
+# ──────────────────────────────────────────────
+# STATS — Aggregate student statistics (admin only)
+# ──────────────────────────────────────────────
 @router.get("/stats/summary")
 def get_student_stats(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
     """
-    Get a summary of student statistics.
+    Returns a summary dashboard with:
+      - Total number of students
+      - Average GPA across all students
+      - Breakdown by department (how many students in each)
+      - Breakdown by status (active, graduated, suspended, etc.)
     """
     total_students = db.query(Student).count()
     
-    # Department breakdown
+    # Count students per department
     dept_stats = db.query(
         Student.department, func.count(Student.id)
     ).group_by(Student.department).all()
     
-    # Status breakdown
+    # Count students per status
     status_stats = db.query(
         Student.status, func.count(Student.id)
     ).group_by(Student.status).all()
     
-    # Average GPA
+    # Calculate average GPA (returns None if no students, so default to 0.0)
     avg_gpa = db.query(func.avg(Student.gpa)).scalar() or 0.0
     
     return {
