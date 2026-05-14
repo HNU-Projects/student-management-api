@@ -1,3 +1,8 @@
+# === Application Configuration ===
+# This file loads all environment variables from the .env file
+# and exposes them as a single, validated, immutable Settings object.
+# Other modules access settings via: from app.core.config import settings
+
 from __future__ import annotations
 
 import os
@@ -7,24 +12,33 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+# Resolve the project root directory (2 levels up from this file: core → app → project root)
+# Then load environment variables from the .env file located there.
 BASE_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BASE_DIR / ".env")
 
 
+# frozen=True  → makes the object immutable (can't change settings at runtime)
+# slots=True   → optimizes memory usage
 @dataclass(frozen=True, slots=True)
 class Settings:
-    app_name: str
-    database_url: str
-    redis_url: str
-    log_level: str
-    cache_default_ttl_seconds: int
-    secret_key: str
-    access_token_expire_minutes: int
-    jwt_algorithm: str
-    back_end_allowed_origins: list[str]
+    app_name: str                      # Display name of the application
+    database_url: str                  # PostgreSQL connection string
+    redis_url: str                     # Redis server URL for caching
+    log_level: str                     # Logging level (DEBUG, INFO, WARN, ERROR)
+    cache_default_ttl_seconds: int     # Default cache expiry time in seconds
+    secret_key: str                    # Secret key used to sign JWT tokens
+    access_token_expire_minutes: int   # How long a JWT token stays valid (in minutes)
+    jwt_algorithm: str                 # Algorithm used for JWT signing (e.g., HS256)
+    back_end_allowed_origins: list[str]  # CORS — which frontend URLs are allowed to call this API
 
 
     def validate(self) -> None:
+        """
+        Checks that all critical settings have valid values.
+        Raises ValueError immediately on startup if something is misconfigured,
+        rather than failing silently at runtime.
+        """
         if not self.database_url:
             raise ValueError("DATABASE_URL is required. Set it in the .env file.")
         if self.cache_default_ttl_seconds <= 0:
@@ -36,13 +50,24 @@ class Settings:
 
 
 def _normalize_database_url(database_url: str) -> str:
+    """
+    SQLAlchemy requires the driver name in the URL.
+    If the URL starts with 'postgresql://', we add '+psycopg' to specify the driver.
+    Example: postgresql://user:pass@host/db → postgresql+psycopg://user:pass@host/db
+    """
     if database_url.startswith("postgresql://"):
         return database_url.replace("postgresql://", "postgresql+psycopg://", 1)
     return database_url
 
 
+# @lru_cache ensures this function runs only ONCE.
+# Every subsequent call returns the cached Settings object (singleton pattern).
 @lru_cache
 def get_settings() -> Settings:
+    """
+    Reads all environment variables, applies defaults where needed,
+    builds the Settings object, validates it, and returns it.
+    """
     resolved_settings = Settings(
         app_name=os.getenv("APP_NAME", "Student Management API"),
         database_url=_normalize_database_url(os.getenv("DATABASE_URL", "")),
@@ -59,4 +84,7 @@ def get_settings() -> Settings:
     return resolved_settings
 
 
+# === Global settings instance ===
+# This is created once at import time. All modules use this single object.
+# Usage: from app.core.config import settings
 settings = get_settings()

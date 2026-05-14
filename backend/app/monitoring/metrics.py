@@ -1,3 +1,15 @@
+# === Metrics Collector ===
+# This file tracks performance and error statistics for every API endpoint.
+# It's an in-memory metrics system — data resets when the app restarts.
+#
+# How it works:
+#   1. The LoggingMiddleware calls record_request() after every HTTP request.
+#   2. MetricsCollector stores counts, durations, and errors per endpoint.
+#   3. The monitoring dashboard calls snapshot() to get a summary of all metrics.
+#
+# Thread safety: all operations are protected by a Lock since
+# multiple requests can come in simultaneously (concurrent access).
+
 from __future__ import annotations
 
 from collections import deque
@@ -8,30 +20,39 @@ from threading import Lock
 
 @dataclass(slots=True)
 class EndpointMetrics:
-    request_count: int = 0
-    error_count: int = 0
-    total_duration_ms: float = 0.0
+    """Tracks stats for a single endpoint (e.g., "GET /students")."""
+
+    request_count: int = 0          # Total number of requests to this endpoint
+    error_count: int = 0            # How many resulted in a 500+ error
+    total_duration_ms: float = 0.0  # Sum of all response times (used to calculate average)
 
     @property
     def average_duration_ms(self) -> float:
+        """Average response time in milliseconds."""
         if self.request_count == 0:
             return 0.0
         return round(self.total_duration_ms / self.request_count, 2)
 
     @property
     def error_rate(self) -> float:
+        """Percentage of requests that resulted in server errors (500+)."""
         if self.request_count == 0:
             return 0.0
         return round((self.error_count / self.request_count) * 100.0, 2)
 
 
 class MetricsCollector:
+    """
+    Central metrics tracker for the entire application.
+    Stores per-endpoint stats and the last 25 errors for debugging.
+    """
+
     def __init__(self) -> None:
-        self._lock = Lock()
-        self._total_requests = 0
-        self._total_errors = 0
-        self._endpoint_metrics: dict[str, EndpointMetrics] = {}
-        self._recent_errors: deque[dict[str, object]] = deque(maxlen=25)
+        self._lock = Lock()  # Thread lock to prevent data corruption from concurrent access
+        self._total_requests = 0  # Global request counter
+        self._total_errors = 0    # Global error counter
+        self._endpoint_metrics: dict[str, EndpointMetrics] = {}  # Per-endpoint stats, keyed by "METHOD /path"
+        self._recent_errors: deque[dict[str, object]] = deque(maxlen=25)  # Rolling buffer of last 25 errors
 
     def record_request(
         self,
@@ -41,20 +62,27 @@ class MetricsCollector:
         duration_ms: float,
         error_message: str | None = None,
     ) -> None:
-        key = f"{method.upper()} {path}"
+        """
+        Called by LoggingMiddleware after every request.
+        Records the request's method, path, status, and duration.
+        If it's a server error (500+), also stores the error details.
+        """
+        key = f"{method.upper()} {path}"  # e.g., "GET /students" or "POST /auth/login"
         rounded_duration = round(duration_ms, 2)
-        is_error = status_code >= 500
+        is_error = status_code >= 500  # 500, 502, 503, etc. = server errors
 
-        with self._lock:
+        with self._lock:  # Thread-safe block
             self._total_requests += 1
             if is_error:
                 self._total_errors += 1
 
+            # Get or create metrics for this endpoint
             endpoint = self._endpoint_metrics.setdefault(key, EndpointMetrics())
             endpoint.request_count += 1
             endpoint.total_duration_ms += rounded_duration
             if is_error:
                 endpoint.error_count += 1
+                # Store error details for the monitoring dashboard
                 self._recent_errors.appendleft(
                     {
                         "timestamp": datetime.now(UTC).isoformat(),
@@ -66,13 +94,26 @@ class MetricsCollector:
                 )
 
     def snapshot(self) -> dict[str, object]:
+        """
+        Returns a complete snapshot of all collected metrics.
+        Used by the /monitoring/metrics and /monitoring/dashboard endpoints.
+
+        Includes:
+          - Total requests and errors
+          - Overall error rate percentage
+          - System health status (healthy / degraded / unhealthy)
+          - Per-endpoint breakdown (count, avg duration, error rate)
+          - Last 25 errors for debugging
+        """
         with self._lock:
+            # Calculate the overall error rate
             overall_error_rate = (
                 0.0
                 if self._total_requests == 0
                 else round((self._total_errors / self._total_requests) * 100.0, 2)
             )
 
+            # Build per-endpoint stats
             endpoints: dict[str, dict[str, object]] = {}
             for key, value in self._endpoint_metrics.items():
                 payload = asdict(value)
@@ -80,11 +121,12 @@ class MetricsCollector:
                 payload["error_rate"] = value.error_rate
                 endpoints[key] = payload
 
-            system_health = "healthy"
+            # Determine system health based on error rate thresholds
+            system_health = "healthy"        # < 10% errors
             if overall_error_rate >= 10.0:
-                system_health = "degraded"
+                system_health = "degraded"   # 10-30% errors — something is wrong
             if overall_error_rate >= 30.0:
-                system_health = "unhealthy"
+                system_health = "unhealthy"  # > 30% errors — critical
 
             return {
                 "total_requests": self._total_requests,
@@ -96,4 +138,6 @@ class MetricsCollector:
             }
 
 
+# === Singleton instance ===
+# One collector is shared across the entire application.
 metrics_collector = MetricsCollector()

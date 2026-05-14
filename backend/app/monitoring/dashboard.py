@@ -1,3 +1,10 @@
+# === Monitoring Dashboard ===
+# Provides two endpoints:
+#   1. GET /monitoring/metrics  → returns raw JSON metrics (for programmatic access)
+#   2. GET /monitoring/dashboard → returns an HTML page with a live metrics table
+#
+# The dashboard auto-refreshes every 10 seconds to show real-time data.
+
 from __future__ import annotations
 
 from fastapi import APIRouter
@@ -10,15 +17,23 @@ router = APIRouter(prefix="/monitoring", tags=["Monitoring"])
 
 @router.get("/metrics")
 def get_metrics() -> dict[str, object]:
+    """Returns all collected metrics as raw JSON."""
     return metrics_collector.snapshot()
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
 def get_dashboard() -> str:
+    """
+    Returns a simple HTML dashboard showing:
+      - Total requests, errors, error rate, and system health status
+      - Per-endpoint table with request count, avg response time, and error rate
+      - Auto-refreshes every 10 seconds via JavaScript
+    """
     snapshot = metrics_collector.snapshot()
     endpoints = snapshot["endpoints"]
-    rows = ""
 
+    # Build table rows for each endpoint
+    rows = ""
     for endpoint, values in endpoints.items():
         rows += (
             "<tr>"
