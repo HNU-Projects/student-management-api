@@ -22,6 +22,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useAuthQueries } from "@/features/auth/hooks/useAuthQueries";
+import { useAuthMutations } from "@/features/auth/hooks/useAuthMutations";
 import { useMyStudentProfile } from "@/features/students/hooks/useStudentQueries";
 import { useStudentMutations } from "@/features/students/hooks/useStudentMutations";
 import { StudentCreate, StudentUpdate, Gender, StudentStatus } from "@/features/students/types";
@@ -39,6 +40,7 @@ export default function ProfilePage() {
   const student = studentQuery.data;
 
   const { createStudentMutation, updateStudentMutation } = useStudentMutations();
+  const { updateNameMutation } = useAuthMutations();
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -193,6 +195,10 @@ export default function ProfilePage() {
                     { id: student.id, data },
                     {
                       onSuccess: () => {
+                        // If name was updated in student record, update it in User record too
+                        if (data.name) {
+                          updateNameMutation.mutate({ full_name: data.name });
+                        }
                         setIsEditing(false);
                         toast.success(t("save_changes"));
                       },
@@ -203,7 +209,7 @@ export default function ProfilePage() {
                     }
                   );
                 }}
-                isLoading={updateStudentMutation.isPending}
+                isLoading={updateStudentMutation.isPending || updateNameMutation.isPending}
                 t={t}
               />
             ) : (

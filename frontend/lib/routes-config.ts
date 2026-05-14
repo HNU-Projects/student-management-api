@@ -4,8 +4,10 @@ import {
   Settings, 
   GraduationCap,
   UserCircle,
-  Home
+  Home,
+  Activity
 } from "lucide-react";
+
 
 export type Role = "admin" | "student" | "public";
 
@@ -53,7 +55,17 @@ export const routesConfig: Record<string, RouteConfig> = {
     showInSidebar: true,
     group: "group_management",
   },
+  monitoring: {
+    path: "/dashboard/monitoring",
+    roles: ["admin"],
+    label: "nav_monitoring",
+    icon: Activity,
+
+    showInSidebar: true,
+    group: "group_management",
+  },
   profile: {
+
     path: "/dashboard/profile",
     roles: ["admin", "student"],
     label: "nav_profile",

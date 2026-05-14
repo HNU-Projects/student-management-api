@@ -15,6 +15,8 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+import platform
+import time
 from threading import Lock
 
 
@@ -48,11 +50,13 @@ class MetricsCollector:
     """
 
     def __init__(self) -> None:
-        self._lock = Lock()  # Thread lock to prevent data corruption from concurrent access
-        self._total_requests = 0  # Global request counter
-        self._total_errors = 0    # Global error counter
-        self._endpoint_metrics: dict[str, EndpointMetrics] = {}  # Per-endpoint stats, keyed by "METHOD /path"
-        self._recent_errors: deque[dict[str, object]] = deque(maxlen=25)  # Rolling buffer of last 25 errors
+        self._lock = Lock()
+        self._total_requests = 0
+        self._total_errors = 0
+        self._start_time = time.time()
+        self._endpoint_metrics: dict[str, EndpointMetrics] = {}
+        self._recent_errors: deque[dict[str, object]] = deque(maxlen=25)
+        self._audit_logs: deque[dict[str, object]] = deque(maxlen=50)
 
     def record_request(
         self,
@@ -60,6 +64,7 @@ class MetricsCollector:
         path: str,
         status_code: int,
         duration_ms: float,
+        user: str = "anonymous",
         error_message: str | None = None,
     ) -> None:
         """
@@ -80,6 +85,20 @@ class MetricsCollector:
             endpoint = self._endpoint_metrics.setdefault(key, EndpointMetrics())
             endpoint.request_count += 1
             endpoint.total_duration_ms += rounded_duration
+            
+            # Record in general audit logs
+            self._audit_logs.appendleft(
+                {
+                    "timestamp": datetime.now(UTC).isoformat(),
+                    "path": path,
+                    "method": method.upper(),
+                    "status_code": status_code,
+                    "duration_ms": rounded_duration,
+                    "user": user,
+                }
+            )
+
+
             if is_error:
                 endpoint.error_count += 1
                 # Store error details for the monitoring dashboard
@@ -92,6 +111,16 @@ class MetricsCollector:
                         "error": error_message or "Unhandled server error",
                     }
                 )
+
+    def get_system_info(self) -> dict[str, object]:
+        """Returns basic system and uptime information."""
+        return {
+            "uptime_seconds": int(time.time() - self._start_time),
+            "system": {
+                "platform": platform.system(),
+                "python_version": platform.python_version(),
+            }
+        }
 
     def snapshot(self) -> dict[str, object]:
         """
@@ -135,9 +164,9 @@ class MetricsCollector:
                 "system_health": system_health,
                 "endpoints": endpoints,
                 "recent_errors": list(self._recent_errors),
+                "audit_logs": list(self._audit_logs),
             }
 
 
-# === Singleton instance ===
-# One collector is shared across the entire application.
+
 metrics_collector = MetricsCollector()

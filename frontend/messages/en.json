@@ -105,6 +105,8 @@
     "nav_users": "Users",
     "nav_settings": "Settings",
     "nav_profile": "My Profile",
+    "nav_monitoring": "Monitoring",
+
     "nav_back_home": "Back to Home",
     "nav_logout": "Logout",
     "search_placeholder": "Search anything...",
@@ -151,6 +153,37 @@
     "no_activity": "No recent activity found",
     "activity_new_student": "New student registered"
   },
+  "Monitoring": {
+    "title": "System Monitoring",
+    "subtitle": "Real-time performance metrics and system health.",
+    "health_status": "Health Status",
+    "uptime": "System Uptime",
+    "database": "Database",
+    "redis": "Redis Cache",
+    "latency": "Latency",
+    "api_metrics": "API Metrics",
+    "requests": "Total Requests",
+    "errors": "Total Errors",
+    "error_rate": "Error Rate",
+    "avg_duration": "Avg Duration",
+    "recent_errors": "Recent System Errors",
+    "audit_logs": "Live Audit Logs",
+    "no_audit_logs": "No activity recorded yet.",
+    "no_errors": "No system errors reported recently.",
+    "live": "Live",
+    "endpoint": "Endpoint",
+    "method": "Method",
+    "status_code": "Status",
+    "timestamp": "Timestamp",
+    "details": "Details",
+    "refreshing": "Refreshing in {seconds}s",
+    "system_info": "System Information",
+    "platform": "Platform",
+    "python_version": "Python Version",
+    "user": "User"
+
+  },
+
   "Profile": {
     "title": "My Profile",
     "personal_info": "Personal Information",
@@ -207,7 +240,8 @@
     "university_id_placeholder": "e.g. 20240001",
     "department_placeholder": "e.g. Computer Science",
     "name_placeholder": "e.g. John Doe",
-    "phone_placeholder": "e.g. +20 123 456 7890"
+    "phone_placeholder": "e.g. +20 123 456 7890",
+    "cancel": "Cancel"
   },
   "Users": {
     "title": "Users Management",

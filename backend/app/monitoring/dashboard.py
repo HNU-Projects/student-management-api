@@ -7,18 +7,68 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+import time
+import platform
+
+from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app.monitoring.metrics import metrics_collector
+from app.db.session import get_db
+from app.cache.cache_manager import cache_manager
 
 router = APIRouter(prefix="/monitoring", tags=["Monitoring"])
+
+_start_time = time.time()
+
+
+@router.get("/health")
+def health_check(db: Session = Depends(get_db)) -> dict:
+    """System health check — DB, Redis, uptime, system info."""
+    # Database check
+    db_status = "online"
+    db_latency = 0.0
+    try:
+        t0 = time.time()
+        db.execute(text("SELECT 1"))
+        db_latency = round((time.time() - t0) * 1000, 2)
+    except Exception:
+        db_status = "offline"
+
+    # Redis check
+    redis_status = "online"
+    redis_latency = 0.0
+    try:
+        t0 = time.time()
+        cache_manager.client.ping()
+        redis_latency = round((time.time() - t0) * 1000, 2)
+    except Exception:
+        redis_status = "offline"
+
+    uptime = time.time() - _start_time
+
+    return {
+        "status": "healthy" if db_status == "online" else "degraded",
+        "uptime_seconds": round(uptime, 1),
+        "services": {
+            "database": {"status": db_status, "latency_ms": db_latency},
+            "redis": {"status": redis_status, "latency_ms": redis_latency},
+        },
+        "system": {
+            "platform": platform.system(),
+            "python_version": platform.python_version(),
+            "disk": {"percent_used": "N/A"},
+        },
+    }
 
 
 @router.get("/metrics")
 def get_metrics() -> dict[str, object]:
     """Returns all collected metrics as raw JSON."""
     return metrics_collector.snapshot()
+
 
 
 @router.get("/dashboard", response_class=HTMLResponse)

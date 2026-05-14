@@ -10,7 +10,7 @@
 
 from collections.abc import Callable, Iterable
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from app.core.security import oauth2_scheme
@@ -36,8 +36,9 @@ _forbidden_exception = HTTPException(
 
 
 def get_current_user(
-    db: Session = Depends(get_db),        # Inject a database session
-    token: str = Depends(oauth2_scheme),  # Extract the Bearer token from the request
+    request: Request,
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme),
 ) -> User:
     """
     Core authentication function. Every protected endpoint depends on this.
@@ -72,9 +73,13 @@ def get_current_user(
     # Prevents using an old token after a user's role has been changed.
     token_role = payload.get("role")
     if token_role is not None and token_role != user.role:
+
         raise _credentials_exception
 
+    # Attach to request state for middleware access
+    request.state.user = user
     return user
+
 
 
 def require_admin(

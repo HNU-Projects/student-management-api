@@ -1,5 +1,5 @@
 import { authApi } from "../api/auth.api";
-import { UserRegister, UserLogin, EmailUpdate, PasswordUpdate } from "../types";
+import { UserRegister, UserLogin, EmailUpdate, PasswordUpdate, NameUpdate } from "../types";
 
 export const authService = {
   login: async (data: UserLogin) => {
@@ -26,6 +26,12 @@ export const authService = {
     const response = await authApi.updatePassword(data);
     return response.data;
   },
+
+  updateName: async (data: NameUpdate) => {
+    const response = await authApi.updateName(data);
+    return response.data;
+  },
+
 
   getUsers: async () => {
     const response = await authApi.getUsers();

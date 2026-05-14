@@ -36,8 +36,14 @@ export const studentService = {
     return response.data;
   },
 
+  replaceStudent: async (id: number, data: StudentCreate) => {
+    const response = await studentApi.replaceStudent(id, data);
+    return response.data;
+  },
+
   deleteStudent: async (id: number) => {
     const response = await studentApi.deleteStudent(id);
     return response.data;
   },
 };
+

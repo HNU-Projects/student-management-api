@@ -1,4 +1,15 @@
+# === Full-Stack Infrastructure (Docker Compose) ===
+# This file orchestrates all the services required for the application to run.
+#
+# Services:
+#   1. db         → PostgreSQL database for persistent data.
+#   2. redis      → Redis server for caching student lists and analytics.
+#   3. api        → The FastAPI backend application.
+#   4. prometheus → Monitoring tool that scrapes metrics from the API.
+#   5. grafana    → Dashboard UI for visualizing metrics and logs.
+
 services:
+  # 1. PostgreSQL Database
   db:
     image: postgres:16-alpine
     container_name: student_db
@@ -7,17 +18,20 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: student_management
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data  # Persists data even if container is deleted
     ports:
       - "5433:5432"
 
+  # 2. Redis Cache
   redis:
     image: redis:7-alpine
     container_name: student_redis
     ports:
       - "6379:6379"
 
+  # 3. FastAPI API Server
   api:
+
     build: ./backend
     container_name: student_api
     depends_on:
@@ -36,5 +50,38 @@ services:
       - "8000:8000"
     restart: always
 
+  # ---- Monitoring stack ----
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: student_prometheus
+    volumes:
+      - ./backend/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api
+    restart: always
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: student_grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./backend/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./backend/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    restart: always
+
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:

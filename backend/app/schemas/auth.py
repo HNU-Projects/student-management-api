@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -13,6 +14,13 @@ class UserRegister(BaseModel):
     password: str = Field(min_length=1)
     full_name: str
     role: Role
+
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    password: Optional[str] = Field(None, min_length=1)
+    full_name: Optional[str] = None
+    role: Optional[Role] = None
 
 
 class UserLogin(BaseModel):
@@ -46,3 +54,8 @@ class EmailUpdate(BaseModel):
 class PasswordUpdate(BaseModel):
     current_password: str
     new_password: str = Field(min_length=1)
+
+
+class NameUpdate(BaseModel):
+    full_name: str = Field(min_length=1, max_length=150)
+

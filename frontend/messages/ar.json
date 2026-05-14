@@ -105,6 +105,8 @@
     "nav_users": "المستخدمين",
     "nav_settings": "الإعدادات",
     "nav_profile": "ملفي الشخصي",
+    "nav_monitoring": "المراقبة",
+
     "nav_back_home": "العودة للرئيسية",
     "nav_logout": "تسجيل الخروج",
     "search_placeholder": "بحث عن أي شيء...",
@@ -152,6 +154,39 @@
     "security_audit": "فحص الأمان",
     "activity_new_student": "تم تسجيل طالب جديد"
   },
+  "Monitoring": {
+    "title": "مراقبة النظام",
+    "subtitle": "مقاييس الأداء في الوقت الفعلي وحالة النظام.",
+    "health_status": "حالة الصحة",
+    "uptime": "وقت التشغيل",
+    "database": "قاعدة البيانات",
+    "redis": "ذاكرة Redis",
+    "latency": "سرعة الاستجابة",
+    "api_metrics": "مقاييس API",
+    "requests": "إجمالي الطلبات",
+    "errors": "إجمالي الأخطاء",
+    "error_rate": "معدل الخطأ",
+    "avg_duration": "متوسط المدة",
+    "recent_errors": "أخطاء النظام الأخيرة",
+    "audit_logs": "سجلات النشاط المباشرة",
+    "no_audit_logs": "لم يتم تسجيل أي نشاط بعد.",
+    "no_errors": "لا توجد أخطاء نظام مسجلة مؤخراً.",
+    "live": "مباشر",
+
+
+    "endpoint": "نقطة النهاية",
+    "method": "الطريقة",
+    "status_code": "الحالة",
+    "timestamp": "الوقت",
+    "details": "التفاصيل",
+    "refreshing": "تحديث خلال {seconds} ثوانٍ",
+    "system_info": "معلومات النظام",
+    "platform": "المنصة",
+    "python_version": "نسخة بايثون",
+    "user": "المستخدم"
+
+  },
+
   "Profile": {
     "title": "الملف الشخصي",
     "personal_info": "المعلومات الشخصية",
@@ -208,7 +243,8 @@
     "university_id_placeholder": "مثال: 20240001",
     "department_placeholder": "مثال: علوم الحاسب",
     "name_placeholder": "مثال: أحمد محمد",
-    "phone_placeholder": "مثال: +20 123 456 7890"
+    "phone_placeholder": "مثال: +20 123 456 7890",
+    "cancel": "إلغاء"
   },
   "Users": {
     "title": "إدارة المستخدمين",

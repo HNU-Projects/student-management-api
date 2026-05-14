@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import { Token, User, UserRegister, UserLogin, EmailUpdate, PasswordUpdate } from "../types";
+import { Token, User, UserRegister, UserLogin, EmailUpdate, PasswordUpdate, NameUpdate } from "../types";
 
 export const authApi = {
   login: (data: UserLogin) => 
@@ -17,12 +17,20 @@ export const authApi = {
   updatePassword: (data: PasswordUpdate) =>
     api.put<{ detail: string }>("/users/me/password", data),
 
+  updateName: (data: NameUpdate) =>
+    api.put<User>("/users/me/name", data),
+
+
   getUsers: () =>
     api.get<User[]>("/users/"),
 
   createUser: (userData: UserRegister) =>
     api.post<User>("/users/", userData),
 
+  adminUpdateUser: (userId: number, userData: UserRegister) =>
+    api.put<User>(`/users/${userId}`, userData),
+
   deleteUser: (userId: number) =>
+
     api.delete(`/users/${userId}`),
 };

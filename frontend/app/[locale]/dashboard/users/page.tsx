@@ -42,9 +42,10 @@ export default function UsersManagementPage() {
   
   const { useUsers } = useAuthQueries();
   const { data: users, isLoading, refetch } = useUsers({ enabled: true });
-  const { createUserMutation, deleteUserMutation } = useAuthMutations();
+  const { createUserMutation, deleteUserMutation, adminUpdateUserMutation } = useAuthMutations();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -61,19 +62,49 @@ export default function UsersManagementPage() {
     return matchesSearch && matchesRole;
   });
 
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    setFormData({
+      email: user.email,
+      password: "", // Don't show password
+      full_name: user.full_name || "",
+      role: user.role as "admin" | "student"
+    });
+    setIsFormOpen(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createUserMutation.mutate(formData, {
-      onSuccess: () => {
-        toast.success(t("create_success"));
-        setIsFormOpen(false);
-        setFormData({ email: "", password: "", full_name: "", role: "student" });
-        refetch();
-      },
-      onError: (error: any) => {
-        toast.error(error?.response?.data?.detail || t("create_failed"));
-      }
-    });
+    
+    if (editingUser) {
+      adminUpdateUserMutation.mutate(
+        { userId: editingUser.id, data: formData },
+        {
+          onSuccess: () => {
+            toast.success(t("update_success"));
+            setIsFormOpen(false);
+            setEditingUser(null);
+            setFormData({ email: "", password: "", full_name: "", role: "student" });
+            refetch();
+          },
+          onError: (error: any) => {
+            toast.error(error?.response?.data?.detail || "Update failed");
+          }
+        }
+      );
+    } else {
+      createUserMutation.mutate(formData, {
+        onSuccess: () => {
+          toast.success(t("create_success"));
+          setIsFormOpen(false);
+          setFormData({ email: "", password: "", full_name: "", role: "student" });
+          refetch();
+        },
+        onError: (error: any) => {
+          toast.error(error?.response?.data?.detail || t("create_failed"));
+        }
+      });
+    }
   };
 
   const confirmDelete = () => {
@@ -89,6 +120,8 @@ export default function UsersManagementPage() {
       }
     });
   };
+
+
 
   return (
     <div className="flex flex-col gap-8 w-full">
@@ -181,12 +214,13 @@ export default function UsersManagementPage() {
                     <td className="px-6 py-4 text-end">
                       <div className="flex items-center justify-end gap-2">
                         <button 
-                          disabled
-                          className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all opacity-30 cursor-not-allowed"
+                          onClick={() => handleEdit(user)}
+                          className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all"
                           title={t("edit")}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
+
                         <button 
                           onClick={() => setDeleteConfirm({ id: user.id, email: user.email })}
                           disabled={deleteUserMutation.isPending}
@@ -211,12 +245,13 @@ export default function UsersManagementPage() {
           <div className="bg-card border border-border rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-border flex items-center justify-between bg-muted/30">
               <h2 className="text-xl font-black flex items-center gap-3">
-                <UsersIcon className="w-6 h-6 text-primary" />
-                {t("add_new")}
+                {editingUser ? <Edit2 className="w-6 h-6 text-primary" /> : <UsersIcon className="w-6 h-6 text-primary" />}
+                {editingUser ? t("edit") : t("add_new")}
               </h2>
-              <button onClick={() => setIsFormOpen(false)} className="p-2 rounded-xl hover:bg-muted transition-all">
+              <button onClick={() => { setIsFormOpen(false); setEditingUser(null); }} className="p-2 rounded-xl hover:bg-muted transition-all">
                 <X className="w-5 h-5" />
               </button>
+
             </div>
             
             <form onSubmit={handleSubmit} className="p-8 flex flex-col gap-6">
@@ -258,8 +293,9 @@ export default function UsersManagementPage() {
                 <div className="relative group">
                   <input 
                     type={showPassword ? "text" : "password"}
-                    required
-                    placeholder={authT("password_placeholder")}
+                    required={!editingUser}
+                    placeholder={editingUser ? "Leave blank to keep current" : authT("password_placeholder")}
+
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
                     className="w-full bg-muted border border-border rounded-xl py-3 ps-4 pe-11 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
